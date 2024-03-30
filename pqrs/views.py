@@ -43,7 +43,7 @@ class createPQRview(View):
     def post(self, request):
         jd = json.loads(request.body)
         token = jd['token']
-        send_jwt_validation_request(token)
+        #send_jwt_validation_request(token)
         try:
             PQR.objects.create(
                 empresa_id=jd['empresa_id'],
