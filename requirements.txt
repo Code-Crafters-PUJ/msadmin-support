@@ -1,0 +1,7 @@
+django-cors-headers==4.3.1 ; python_version >= "3.10" and python_version < "4.0"
+django-rest-enumfield==0.2.0 ; python_version >= "3.10" and python_version < "4.0"
+django-stubs-ext==4.2.7 ; python_version >= "3.10" and python_version < "4.0"
+django-stubs==4.2.7 ; python_version >= "3.10" and python_version < "4.0"
+django==5.0.3 ; python_version >= "3.10" and python_version < "4.0"
+djangorestframework==3.14.0 ; python_version >= "3.10" and python_version < "4.0"
+python-dotenv==1.0.1 ; python_version >= "3.10" and python_version < "4.0"
