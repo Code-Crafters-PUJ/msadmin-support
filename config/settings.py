@@ -10,7 +10,14 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+VERSION = "0.1.1"
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,7 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-&^_bgiv)@)&b1!ymc3h^w76l7&%+256qrcxg-qfokn*t(chunx"
+SECRET_KEY = os.getenv("JWT_SECRET")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -37,7 +44,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "pqrs"
+    "pqrs",
 ]
 
 MIDDLEWARE = [
@@ -100,10 +107,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-RABBITMQ_HOST = 'localhost'
+RABBITMQ_HOST = "localhost"
 RABBITMQ_PORT = 5672
-RABBITMQ_USERNAME = 'usuario'
-RABBITMQ_PASSWORD = 'adsadsdasasdasd'
+RABBITMQ_USERNAME = "usuario"
+RABBITMQ_PASSWORD = "adsadsdasasdasd"
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
