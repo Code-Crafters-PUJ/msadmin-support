@@ -39,3 +39,6 @@ class respuestas_solicitudes(models.Model):
     fecha_respuesta = models.DateTimeField()
     asunto = models.CharField(max_length=100)
     descripcion = models.TextField()
+
+
+class Clients(models.Model): ...  # TODO: Add fields here
