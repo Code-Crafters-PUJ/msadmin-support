@@ -49,13 +49,29 @@ def validate_soporte_role(token: str) -> bool:
     return validate_role(token, "SOPORTE")
 
 
-class createPQRview(View):
+class allPQRview(View):
+    def get(self, request: HttpRequest) -> JsonResponse:
+        token: str | None = request.headers.get("Authorization")
+
+        if not token:
+            return JsonResponse(
+                {"message": "You must include an Authorization header"}, status=401
+            )
+
+        if not (validate_admin_role(token) and validate_soporte_role(token)):
+            return JsonResponse(
+                {"message": "You don't have the required permissions"}, status=403
+            )
+
+        pqrs = PQR.objects.values()
+        return JsonResponse({"pqrs": list(pqrs)}, safe=False)
+
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: HttpRequest) -> JsonResponse:
-        token: str = request.headers.get("Authorization") or ""
+        token: str | None = request.headers.get("Authorization")
 
         if not token:
             return JsonResponse(
@@ -84,9 +100,9 @@ class createPQRview(View):
             return JsonResponse({"message": str(e)}, status=400)
 
 
-class getPQRview(View):
+class singlePQRview(View):
     def get(self, request: HttpRequest, pk: int) -> JsonResponse:
-        token: str = request.headers.get("Authorization") or ""
+        token: str | None = request.headers.get("Authorization")
 
         if not token:
             return JsonResponse(
