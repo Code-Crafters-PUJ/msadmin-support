@@ -14,7 +14,8 @@ pip install -r requirements.txt
 ```bash
 python manage.py migrate
 ```
-5. To create the mock data, run the following command:
+5. To populate the database with mock data, run the following command:
+
 ```bash
 python manage.py populate_mock_data
 ```
