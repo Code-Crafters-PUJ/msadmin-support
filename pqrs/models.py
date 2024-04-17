@@ -4,32 +4,30 @@ from django.db import models
 
 
 class PQR(models.Model):
-    empresa_id = models.IntegerField(primary_key=True,unique=True)
+    empresa_id = models.IntegerField(primary_key=True, unique=True)
 
-    PETICION = 'Peticion'
-    QUEJA = 'Queja'
-    RECLAMO = 'Reclamo'
+    PETICION = "Peticion"
+    QUEJA = "Queja"
+    RECLAMO = "Reclamo"
 
     TIPO_SOLICITUD_CHOICES = [
-        (PETICION, 'Peticion'),
-        (QUEJA, 'Queja'),
-        (RECLAMO, 'Reclamo'),
+        (PETICION, "Peticion"),
+        (QUEJA, "Queja"),
+        (RECLAMO, "Reclamo"),
     ]
 
-    tipo_solicitud = models.CharField(
-        max_length=20, choices=TIPO_SOLICITUD_CHOICES)
-    
-    RECIBIDO = 'Recibido'
-    EN_PROCESO = 'En proceso'
-    CERRADO= 'Cerrado'
+    tipo_solicitud = models.CharField(max_length=20, choices=TIPO_SOLICITUD_CHOICES)
+
+    RECIBIDO = "Recibido"
+    EN_PROCESO = "En proceso"
+    CERRADO = "Cerrado"
 
     ESTADO_CHOICES = [
-        (RECIBIDO, 'Recibido'),
-        (EN_PROCESO, 'En proceso'),
-        (CERRADO, 'Cerrado'),
+        (RECIBIDO, "Recibido"),
+        (EN_PROCESO, "En proceso"),
+        (CERRADO, "Cerrado"),
     ]
-    estado = models.CharField(
-        max_length=20, choices=ESTADO_CHOICES)
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES)
     fecha_solicitud = models.DateTimeField()
     asunto = models.CharField(max_length=100)
     descripcion = models.TextField()
