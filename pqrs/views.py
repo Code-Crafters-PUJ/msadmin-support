@@ -10,7 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from config.settings import SECRET_KEY
 from pqrs.rabbitmq import get_rabbitmq_connection
 
-from .models import PQR
+from .models import PQR, respuestas_solicitudes
 
 
 def send_jwt_validation_request(token: str) -> None:
@@ -116,3 +116,44 @@ class singlePQRview(View):
 
         pqr = PQR.objects.filter(empresa_id=pk).values()
         return JsonResponse({"pqr": list(pqr)}, safe=False)
+
+
+class ManagePQRview(View):
+    def post(self, request: HttpRequest, pk: int) -> JsonResponse:
+        token: str | None = request.headers.get("Authorization")
+
+        jd = json.loads(request.body)
+
+        if not token:
+            return JsonResponse(
+                {"message": "You must include an Authorization header"}, status=401
+            )
+
+        if not (validate_admin_role(token) and validate_soporte_role(token)):
+            return JsonResponse(
+                {"message": "You don't have the required permissions"}, status=403
+            )
+
+        response_request: respuestas_solicitudes
+
+        try:
+            response_request = respuestas_solicitudes.objects.create(
+                empresa_id=pk,
+                tipo_solicitud=jd["tipo_solicitud"],
+                estado=jd["estado"],
+                fecha_solicitud=jd["fecha_solicitud"],
+                asunto=jd["asunto"],
+                descripcion=jd["descripcion"],
+            )
+        except Exception:
+            return JsonResponse(
+                {
+                    "message": "tipo_solicitud, estado, fecha_solicitud, asunto and descripcion are required"
+                },
+                status=400,
+            )
+
+        return JsonResponse(
+            {"message": "PQR created successfully", "response": response_request},
+            status=201,
+        )
