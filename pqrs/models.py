@@ -46,7 +46,7 @@ class PQR(models.Model):
 
 class respuestas_solicitudes(models.Model):
     historial_solicitudes_id = models.IntegerField(primary_key=True)
-    pqrs_empresa_id = models.ForeignKey(PQR, on_delete=models.CASCADE)
+    pqrs_id = models.ForeignKey(PQR, on_delete=models.CASCADE)
     fecha_respuesta = models.DateTimeField()
     asunto = models.CharField(max_length=100)
     descripcion = models.TextField()
