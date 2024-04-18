@@ -3,8 +3,18 @@ from django.db import models
 # Create your models here.
 
 
+class Clients(models.Model):
+    id = models.IntegerField(primary_key=True, unique=True)
+    company_name = models.CharField(max_length=100)
+    contact_name = models.CharField(max_length=100)
+    email = models.EmailField(max_length=100)
+    telephone = models.CharField(max_length=20)
+    nit = models.IntegerField()
+    status = models.BooleanField(default=True)
+
+
 class PQR(models.Model):
-    empresa_id = models.IntegerField(primary_key=True, unique=True)
+    id = models.IntegerField(primary_key=True, unique=True)
 
     PETICION = "Peticion"
     QUEJA = "Queja"
@@ -31,6 +41,7 @@ class PQR(models.Model):
     fecha_solicitud = models.DateTimeField()
     asunto = models.CharField(max_length=100)
     descripcion = models.TextField()
+    id_cliente = models.ForeignKey(Clients, on_delete=models.CASCADE)
 
 
 class respuestas_solicitudes(models.Model):
@@ -39,6 +50,3 @@ class respuestas_solicitudes(models.Model):
     fecha_respuesta = models.DateTimeField()
     asunto = models.CharField(max_length=100)
     descripcion = models.TextField()
-
-
-class Clients(models.Model): ...  # TODO: Add fields here
