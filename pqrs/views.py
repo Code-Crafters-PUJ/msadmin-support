@@ -1,52 +1,15 @@
 import json
 from typing import Any
 
-import jwt
 from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from config.settings import SECRET_KEY
-from pqrs.rabbitmq import get_rabbitmq_connection
+from pqrs.helpers.jwt import validate_admin_role, validate_soporte_role
 
-from .models import PQR
-
-
-def send_jwt_validation_request(token: str) -> None:
-    connection = get_rabbitmq_connection()
-    channel = connection.channel()
-
-    # Define el mensaje que enviarás, puede ser cualquier información necesaria para la validación
-    message: dict[str, Any] = {"token": token}
-
-    # Publica el mensaje en la cola
-    channel.basic_publish(
-        exchange="", routing_key="jwt_validation_queue", body=json.dumps(message)
-    )
-
-    connection.close()
-
-
-def validate_role(token: str, role: str) -> bool:
-    payload: dict[str, Any]
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        print(payload)
-    except jwt.InvalidTokenError:
-        return False
-
-    if payload["role"] != role:
-        return False
-    return True
-
-
-def validate_admin_role(token: str) -> bool:
-    return validate_role(token, "ADMIN")
-
-
-def validate_soporte_role(token: str) -> bool:
-    return validate_role(token, "SOPORTE")
+from .models import PQR, Clients, PetitionResponses
 
 
 class allPQRview(View):
@@ -58,49 +21,18 @@ class allPQRview(View):
                 {"message": "You must include an Authorization header"}, status=401
             )
 
-        if not (validate_admin_role(token) and validate_soporte_role(token)):
+        if not (validate_admin_role(token) or validate_soporte_role(token)):
             return JsonResponse(
                 {"message": "You don't have the required permissions"}, status=403
             )
 
-        pqrs = PQR.objects.values()
-        return JsonResponse({"pqrs": list(pqrs)}, safe=False)
-
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-        return super().dispatch(request, *args, **kwargs)
-
-    def post(self, request: HttpRequest) -> JsonResponse:
-        token: str | None = request.headers.get("Authorization")
-
-        if not token:
-            return JsonResponse(
-                {"message": "You must include an Authorization header"}, status=401
-            )
-
-        jd = json.loads(request.body)
-        # send_jwt_validation_request(token)
-
-        try:
-            if not (validate_admin_role(token) and validate_soporte_role(token)):
-                return JsonResponse(
-                    {"message": "You don't have the required permissions"}, status=403
-                )
-
-            PQR.objects.create(
-                empresa_id=jd["empresa_id"],
-                tipo_solicitud=jd["tipo_solicitud"],
-                estado=jd["estado"],
-                fecha_solicitud=jd["fecha_solicitud"],
-                asunto=jd["asunto"],
-                descripcion=jd["descripcion"],
-            )
-            return JsonResponse({"message": "PQR created successfully"}, status=201)
-        except Exception as e:
-            return JsonResponse({"message": str(e)}, status=400)
+        pqrs = list(
+            PQR.objects.select_related("Clients").filter(client__status=True).values()
+        )
+        return JsonResponse({"pqrs": pqrs}, safe=False)
 
 
-class singlePQRview(View):
+class singleClientPQRview(View):
     def get(self, request: HttpRequest, pk: int) -> JsonResponse:
         token: str | None = request.headers.get("Authorization")
 
@@ -109,10 +41,140 @@ class singlePQRview(View):
                 {"message": "You must include an Authorization header"}, status=401
             )
 
-        if not (validate_admin_role(token) and validate_soporte_role(token)):
+        if not (validate_admin_role(token) or validate_soporte_role(token)):
             return JsonResponse(
                 {"message": "You don't have the required permissions"}, status=403
             )
 
-        pqr = PQR.objects.filter(empresa_id=pk).values()
-        return JsonResponse({"pqr": list(pqr)}, safe=False)
+        try:
+            client = Clients.objects.get(id=pk)
+            if not client or not client.status:
+                raise Clients.DoesNotExist
+
+            pqr = list(PQR.objects.filter(client_id=pk).values())
+            return JsonResponse({"pqr": pqr}, safe=False)
+        except Clients.DoesNotExist:
+            return JsonResponse(
+                {"message": "client_id not found"},
+                status=404,
+            )
+
+
+class ManagePQRview(View):
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request: HttpRequest, pk: int) -> JsonResponse:
+        token: str | None = request.headers.get("Authorization")
+
+        if not token:
+            return JsonResponse(
+                {"message": "You must include an Authorization header"}, status=401
+            )
+
+        if not validate_soporte_role(token):
+            return JsonResponse(
+                {"message": "You don't have the required permissions"}, status=403
+            )
+
+        try:
+            jd = json.loads(request.body)
+            pqr = PQR.objects.get(id=pk)
+
+            if pqr.client.status is False:
+                return JsonResponse(
+                    {"message": "Client is not active"},
+                    status=400,
+                )
+
+            if pqr.state == PQR.CERRADO:
+                return JsonResponse(
+                    {"message": "PQR is already closed"},
+                    status=400,
+                )
+
+            response_request = PetitionResponses.objects.create(
+                pqr=pqr,
+                response_date=timezone.now(),
+                subject=jd["subject"],
+                description=jd["description"],
+            )
+
+            pqr.state = PQR.CERRADO
+            pqr.save()
+            return JsonResponse(
+                {
+                    "message": "PQR closed successfully",
+                    "response": {
+                        "id": response_request.id,
+                        "pqr_id": response_request.pqr.id,
+                        "response_date": response_request.response_date,
+                        "subject": response_request.subject,
+                        "description": response_request.description,
+                    },
+                },
+                status=201,
+            )
+        except PQR.DoesNotExist:
+            return JsonResponse(
+                {"message": "pqr_id not found"},
+                status=404,
+            )
+        except (json.JSONDecodeError, KeyError):
+            return JsonResponse(
+                {"message": "subject and description are required"},
+                status=400,
+            )
+
+
+class singleClientView(View):
+    def get(self, request: HttpRequest, pk: int) -> JsonResponse:
+        token: str | None = request.headers.get("Authorization")
+
+        if not token:
+            return JsonResponse(
+                {"message": "You must include an Authorization header"}, status=401
+            )
+
+        if not (validate_admin_role(token) or validate_soporte_role(token)):
+            return JsonResponse(
+                {"message": "You don't have the required permissions"}, status=403
+            )
+        try:
+            client = list(Clients.objects.filter(id=pk, status=True).values())[0]
+            return JsonResponse({"client": client}, safe=False)
+        except (Clients.DoesNotExist, IndexError):
+            return JsonResponse(
+                {"message": "client_id not found"},
+                status=404,
+            )
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        return super().dispatch(request, *args, **kwargs)
+
+    def delete(self, request: HttpRequest, pk: int) -> JsonResponse:
+        token: str | None = request.headers.get("Authorization")
+
+        if not token:
+            return JsonResponse(
+                {"message": "You must include an Authorization header"}, status=401
+            )
+
+        if not validate_admin_role(token):
+            return JsonResponse(
+                {"message": "You don't have the required permissions"}, status=403
+            )
+
+        try:
+            client = Clients.objects.get(id=pk, status=True)
+            client.status = False
+            client.save()
+        except Clients.DoesNotExist:
+            return JsonResponse(
+                {"message": "client_id not found"},
+                status=404,
+            )
+
+        return JsonResponse({"message": "Client deleted successfully"}, status=200)
