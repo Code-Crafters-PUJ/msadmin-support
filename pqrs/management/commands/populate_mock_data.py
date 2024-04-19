@@ -34,6 +34,15 @@ class Command(BaseCommand):
             telephone="1234567",
         )
 
+        Clients.objects.create(
+            company_name="Empresa 3",
+            contact_name="Empresa 3",
+            nit=123456789,
+            email="empresa3@gmail.com",
+            telephone="1234567",
+            status=False,
+        )
+
         pqr_instance = PQR.objects.create(
             petition_type=PQR.PETICION,
             state=PQR.CERRADO,
