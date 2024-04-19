@@ -1,54 +1,30 @@
 import json
-import re
 from typing import Any
 
-import jwt
-from django.core.serializers import serialize
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from config.settings import SECRET_KEY
+from pqrs.helpers.jwt import validate_admin_role, validate_soporte_role
 
 from .models import PQR, Clients, PetitionResponses
 
 
-def validate_role(token: str, role: str) -> bool:
-    payload: dict[str, Any]
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        print(payload)
-    except jwt.InvalidTokenError:
-        return False
-
-    if payload["role"] != role:
-        return False
-    return True
-
-
-def validate_admin_role(token: str) -> bool:
-    return validate_role(token, "ADMIN")
-
-
-def validate_soporte_role(token: str) -> bool:
-    return validate_role(token, "SOPORTE")
-
-
 class allPQRview(View):
     def get(self, request: HttpRequest) -> JsonResponse:
-        # token: str | None = request.headers.get("Authorization")
+        token: str | None = request.headers.get("Authorization")
 
-        # if not token:
-        #     return JsonResponse(
-        #         {"message": "You must include an Authorization header"}, status=401
-        #     )
+        if not token:
+            return JsonResponse(
+                {"message": "You must include an Authorization header"}, status=401
+            )
 
-        # if not (validate_admin_role(token) or validate_soporte_role(token)):
-        #     return JsonResponse(
-        #         {"message": "You don't have the required permissions"}, status=403
-        #     )
+        if not (validate_admin_role(token) or validate_soporte_role(token)):
+            return JsonResponse(
+                {"message": "You don't have the required permissions"}, status=403
+            )
 
         pqrs = list(
             PQR.objects.select_related("Clients").filter(client__status=True).values()
@@ -58,17 +34,17 @@ class allPQRview(View):
 
 class singleClientPQRview(View):
     def get(self, request: HttpRequest, pk: int) -> JsonResponse:
-        # token: str | None = request.headers.get("Authorization")
+        token: str | None = request.headers.get("Authorization")
 
-        # if not token:
-        #     return JsonResponse(
-        #         {"message": "You must include an Authorization header"}, status=401
-        #     )
+        if not token:
+            return JsonResponse(
+                {"message": "You must include an Authorization header"}, status=401
+            )
 
-        # if not (validate_admin_role(token) or validate_soporte_role(token)):
-        #     return JsonResponse(
-        #         {"message": "You don't have the required permissions"}, status=403
-        #     )
+        if not (validate_admin_role(token) or validate_soporte_role(token)):
+            return JsonResponse(
+                {"message": "You don't have the required permissions"}, status=403
+            )
 
         try:
             client = Clients.objects.get(id=pk)
@@ -90,17 +66,17 @@ class ManagePQRview(View):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: HttpRequest, pk: int) -> JsonResponse:
-        # token: str | None = request.headers.get("Authorization")
+        token: str | None = request.headers.get("Authorization")
 
-        # if not token:
-        #     return JsonResponse(
-        #         {"message": "You must include an Authorization header"}, status=401
-        #     )
+        if not token:
+            return JsonResponse(
+                {"message": "You must include an Authorization header"}, status=401
+            )
 
-        # if not validate_soporte_role(token):
-        #     return JsonResponse(
-        #         {"message": "You don't have the required permissions"}, status=403
-        #     )
+        if not validate_soporte_role(token):
+            return JsonResponse(
+                {"message": "You don't have the required permissions"}, status=403
+            )
 
         try:
             jd = json.loads(request.body)
@@ -150,27 +126,21 @@ class ManagePQRview(View):
                 {"message": "subject and description are required"},
                 status=400,
             )
-        # except Exception as e:
-        #     print(f"error: {e}")
-        #     return JsonResponse(
-        #         {"message": "subject and description are required"},
-        #         status=400,
-        #     )
 
 
 class singleClientView(View):
     def get(self, request: HttpRequest, pk: int) -> JsonResponse:
-        # token: str | None = request.headers.get("Authorization")
+        token: str | None = request.headers.get("Authorization")
 
-        # if not token:
-        #     return JsonResponse(
-        #         {"message": "You must include an Authorization header"}, status=401
-        #     )
+        if not token:
+            return JsonResponse(
+                {"message": "You must include an Authorization header"}, status=401
+            )
 
-        # if not (validate_admin_role(token) or validate_soporte_role(token)):
-        #     return JsonResponse(
-        #         {"message": "You don't have the required permissions"}, status=403
-        #     )
+        if not (validate_admin_role(token) or validate_soporte_role(token)):
+            return JsonResponse(
+                {"message": "You don't have the required permissions"}, status=403
+            )
         try:
             client = list(Clients.objects.filter(id=pk, status=True).values())[0]
             return JsonResponse({"client": client}, safe=False)
@@ -185,17 +155,17 @@ class singleClientView(View):
         return super().dispatch(request, *args, **kwargs)
 
     def delete(self, request: HttpRequest, pk: int) -> JsonResponse:
-        # token: str | None = request.headers.get("Authorization")
+        token: str | None = request.headers.get("Authorization")
 
-        # if not token:
-        #     return JsonResponse(
-        #         {"message": "You must include an Authorization header"}, status=401
-        #     )
+        if not token:
+            return JsonResponse(
+                {"message": "You must include an Authorization header"}, status=401
+            )
 
-        # if not validate_admin_role(token):
-        #     return JsonResponse(
-        #         {"message": "You don't have the required permissions"}, status=403
-        #     )
+        if not validate_admin_role(token):
+            return JsonResponse(
+                {"message": "You don't have the required permissions"}, status=403
+            )
 
         try:
             client = Clients.objects.get(id=pk, status=True)
