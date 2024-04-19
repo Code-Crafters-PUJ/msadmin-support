@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from config.settings import SECRET_KEY
 from pqrs.rabbitmq import get_rabbitmq_connection
 
-from .models import PQR, PetitionResponses
+from .models import PQR, Clients, PetitionResponses
 
 
 def send_jwt_validation_request(token: str) -> None:
@@ -83,26 +83,31 @@ class allPQRview(View):
         # send_jwt_validation_request(token)
 
         try:
-            # if not (validate_admin_role(token) or validate_soporte_role(token)):
+            # if not validate_soporte_role(token):
             #     return JsonResponse(
             #         {"message": "You don't have the required permissions"}, status=403
             #     )
 
             PQR.objects.create(
-                tipo_solicitud=jd["tipo_solicitud"],
-                state=PQR.EN_PROCESO,
-                petition_type=PQR.PETICION,
-                subject=jd["asunto"],
-                description=jd["descripcion"],
+                petition_type=jd["petition_type"],
+                state=PQR.RECIBIDO,
+                subject=jd["subject"],
+                description=jd["description"],
                 petition_date=timezone.now(),
-                client=jd["client_id"],
+                client=Clients.objects.get(id=jd["client_id"]),
             )
             return JsonResponse({"message": "PQR created successfully"}, status=201)
-        except Exception as e:
-            return JsonResponse({"message": str(e)}, status=400)
+        except Exception:
+            print(Exception)
+            return JsonResponse(
+                {
+                    "message": "petition_type, subject, description, and client_id are required"
+                },
+                status=400,
+            )
 
 
-class singlePQRview(View):
+class singleClientPQRview(View):
     def get(self, request: HttpRequest, pk: int) -> JsonResponse:
         # token: str | None = request.headers.get("Authorization")
 
@@ -116,8 +121,15 @@ class singlePQRview(View):
         #         {"message": "You don't have the required permissions"}, status=403
         #     )
 
-        pqr = PQR.objects.filter(empresa_id=pk).values()
-        return JsonResponse({"pqr": list(pqr)}, safe=False)
+        try:
+            pqr = PQR.objects.filter(client_id=pk).values()
+            return JsonResponse({"pqr": pqr}, safe=False)
+        except Exception:
+            print(Exception)
+            return JsonResponse(
+                {"message": "client_id not found"},
+                status=404,
+            )
 
 
 class ManagePQRview(View):
@@ -131,7 +143,7 @@ class ManagePQRview(View):
         #         {"message": "You must include an Authorization header"}, status=401
         #     )
 
-        # if not (validate_admin_role(token) or validate_soporte_role(token)):
+        # if not validate_soporte_role(token):
         #     return JsonResponse(
         #         {"message": "You don't have the required permissions"}, status=403
         #     )
@@ -139,19 +151,22 @@ class ManagePQRview(View):
         response_request: PetitionResponses
 
         try:
+            pqr = PQR.objects.get(id=pk)
+
+            pqr.state = PQR.CERRADO
+
+            pqr.save()
+
             response_request = PetitionResponses.objects.create(
-                id=pk,
-                tipo_solicitud=jd["tipo_solicitud"],
-                estado=jd["estado"],
-                fecha_solicitud=jd["fecha_solicitud"],
-                asunto=jd["asunto"],
-                descripcion=jd["descripcion"],
+                pqr=pqr,
+                response_date=timezone.now(),
+                subject=jd["subject"],
+                description=jd["description"],
             )
         except Exception:
+            print(Exception)
             return JsonResponse(
-                {
-                    "message": "tipo_solicitud, estado, fecha_solicitud, asunto and descripcion are required"
-                },
+                {"message": "subject and description are required"},
                 status=400,
             )
 
@@ -159,3 +174,21 @@ class ManagePQRview(View):
             {"message": "PQR created successfully", "response": response_request},
             status=201,
         )
+
+
+class singleClientView(View):
+    def get(self, request: HttpRequest, pk: int) -> JsonResponse:
+        # token: str | None = request.headers.get("Authorization")
+
+        # if not token:
+        #     return JsonResponse(
+        #         {"message": "You must include an Authorization header"}, status=401
+        #     )
+
+        # if not (validate_admin_role(token) or validate_soporte_role(token)):
+        #     return JsonResponse(
+        #         {"message": "You don't have the required permissions"}, status=403
+        #     )
+
+        client = Clients.objects.filter(id=pk).values()
+        return JsonResponse({"client": client}, safe=False)
