@@ -19,8 +19,8 @@ def validate_role(token: str, role: str) -> bool:
 
 
 def validate_admin_role(token: str) -> bool:
-    return validate_role(token, "ADMIN")
+    return validate_role(token, "Admin")
 
 
 def validate_soporte_role(token: str) -> bool:
-    return validate_role(token, "SOPORTE")
+    return validate_role(token, "Soporte")

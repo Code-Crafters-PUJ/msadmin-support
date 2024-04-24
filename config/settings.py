@@ -32,7 +32,7 @@ SECRET_KEY = os.getenv("JWT_SECRET")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "*"]
 
 
 # Application definition
@@ -113,6 +113,11 @@ RABBITMQ_USERNAME = "usuario"
 RABBITMQ_PASSWORD = "adsadsdasasdasd"
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
+
+CORS_ORIGIN_WHITELIST = [
+    'http://10.43.101.33:4201',  # Allow requests from this specific origin
+]
+CORS_ALLOW_CREDENTIALS = True  # Allow credentials in CORS requests
 
 LANGUAGE_CODE = "en-us"
 
