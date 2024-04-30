@@ -30,6 +30,9 @@ class allPQRview(View):
         pqrs = list(
             PQR.objects.select_related("Clients").filter(client__status=True).values()
         )
+        for item in pqrs:
+            client = Clients.objects.filter(id=item["client_id"]).values()
+            item["company_name"] = list(client)[0]["company_name"]
         return JsonResponse({"pqrs": pqrs}, safe=False)
 
 
