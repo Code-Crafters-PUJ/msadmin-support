@@ -44,7 +44,7 @@ class Command(BaseCommand):
         )
 
         pqr_instance = PQR.objects.create(
-            petition_type=PQR.PETICION,
+            petition_type=PQR.QUEJA,
             state=PQR.CERRADO,
             petition_date=timezone.now(),
             subject="Visualización",
@@ -79,8 +79,8 @@ class Command(BaseCommand):
         )
 
         pqr_instance2 = PQR.objects.create(
-            petition_type=PQR.PETICION,
-            state=PQR.RECLAMO,
+            petition_type=PQR.RECLAMO,
+            state=PQR.EN_PROCESO,
             petition_date=timezone.now(),
             subject="Monto erróneo",
             description="El monto de la factura es incorrecto",
