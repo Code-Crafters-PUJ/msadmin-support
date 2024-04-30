@@ -37,6 +37,7 @@ class PQR(models.Model):
         (EN_PROCESO, "En proceso"),
         (CERRADO, "Cerrado"),
     ]
+
     state = models.CharField(max_length=20, choices=STATE_CHOICES)
     petition_date = models.DateTimeField()
     subject = models.CharField(max_length=100)
